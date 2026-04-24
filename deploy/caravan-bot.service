@@ -1,0 +1,23 @@
+[Unit]
+Description=Caravan Post Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/caravan-post
+EnvironmentFile=/opt/caravan-post/.env
+ExecStart=/opt/caravan-post/.venv/bin/python manage.py runbot
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
