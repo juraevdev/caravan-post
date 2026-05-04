@@ -1,3 +1,4 @@
+from aiogram import Bot
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -21,32 +22,44 @@ class SubscriptionRequiredMiddleware(BaseMiddleware):
         try:
             member = await bot.get_chat_member(chat_id=settings.NEW_GROUP_ID, user_id=user.id)
             if member.status in {"left", "kicked"}:
-                await self._deny(event)
+                await self._deny(event, bot)
                 return
         except (TelegramBadRequest, TelegramForbiddenError):
-            await self._deny(event)
+            await self._deny(event, bot)
             return
 
         return await handler(event, data)
 
-    async def _deny(self, event):
-        text = (
-            "Botdan foydalanish uchun avval majburiy guruhga qo'shiling.\n"
-            "Guruh ID: "
-            f"`{settings.NEW_GROUP_ID}`\n\n"
-            "Guruhga qo'shilgach, \"Tekshirish\" tugmasini bosing."
-        )
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="Tekshirish", callback_data="subscription_check")]
-            ]
+    async def _deny(self, event, bot: Bot):
+        text = "Botdan foydalanish uchun asosiy guruhimizga obuna bo'lishingiz kerak"
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        join_url = await self._resolve_join_url(bot)
+        if join_url:
+            keyboard.inline_keyboard.append(
+                [InlineKeyboardButton(text="Obuna bo'lish", url=join_url)]
+            )
+        keyboard.inline_keyboard.append(
+            [InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="subscription_check")]
         )
 
         if isinstance(event, Message):
-            await event.answer(text=text, reply_markup=keyboard, parse_mode="Markdown")
+            await event.answer(text=text, reply_markup=keyboard)
             return
 
         if isinstance(event, CallbackQuery):
             await event.answer("Avval guruhga qo'shiling.", show_alert=True)
             if event.message:
-                await event.message.answer(text=text, reply_markup=keyboard, parse_mode="Markdown")
+                await event.message.answer(text=text, reply_markup=keyboard)
+
+    async def _resolve_join_url(self, bot: Bot) -> str:
+        if settings.NEW_GROUP_LINK:
+            return settings.NEW_GROUP_LINK
+
+        try:
+            chat = await bot.get_chat(settings.NEW_GROUP_ID)
+            if getattr(chat, "username", None):
+                return f"https://t.me/{chat.username}"
+        except (TelegramBadRequest, TelegramForbiddenError):
+            return ""
+
+        return ""

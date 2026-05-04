@@ -1,7 +1,9 @@
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from django.conf import settings
 
 from tgbot.bot.filters import ChatPrivateFilter
 from tgbot.bot.utils.languages import get_text
@@ -89,7 +91,20 @@ async def handle_language_selection(callback: types.CallbackQuery, state: FSMCon
 
 @router.callback_query(F.data == "subscription_check")
 async def handle_subscription_check(callback: types.CallbackQuery) -> None:
-    await callback.answer("Obuna tasdiqlandi. Endi /start yuboring.", show_alert=True)
+    try:
+        member = await callback.bot.get_chat_member(
+            chat_id=settings.NEW_GROUP_ID,
+            user_id=callback.from_user.id
+        )
+    except (TelegramBadRequest, TelegramForbiddenError):
+        await callback.answer("Obunani tekshirib bo'lmadi. Keyinroq urinib ko'ring.", show_alert=True)
+        return
+
+    if member.status in {"left", "kicked"}:
+        await callback.answer("Siz hali guruhga qo'shilmagansiz.", show_alert=True)
+        return
+
+    await callback.answer("Tasdiqlandi. Endi botdan foydalanishingiz mumkin.", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("channel_"))
