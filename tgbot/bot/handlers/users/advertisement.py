@@ -1,12 +1,10 @@
 from aiogram import Router, F, types
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from tgbot.bot.filters import ChatPrivateFilter
 from tgbot.bot.utils.languages import get_text
-from tgbot.bot.keyboards.languages import create_language_keyboard
 from tgbot.bot.utils.ad_queue import ad_queue
 
 # Router for advertisement handlers
@@ -62,30 +60,6 @@ def create_channels_keyboard(language_code: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
-@router.message(Command("start"))
-async def handle_start(message: Message, state: FSMContext) -> None:
-    """
-    Handle /start command - show language selection keyboard
-    
-    Args:
-        message: Incoming message object
-        state: FSM context for storing data
-    """
-    # Clear any existing state
-    await state.clear()
-    
-    # Show language selection keyboard
-    keyboard = create_language_keyboard()
-    
-    await message.answer(
-        "🌐 Tilni tanlang / Выберите язык / Интихоби забон / Тілді таңдаңыз:",
-        reply_markup=keyboard
-    )
-    
-    # Set state to wait for language selection
-    await state.set_state(AdvertisementStates.selecting_language)
-
-
 @router.callback_query(F.data.startswith("lang_"))
 async def handle_language_selection(callback: types.CallbackQuery, state: FSMContext) -> None:
     """
@@ -111,6 +85,11 @@ async def handle_language_selection(callback: types.CallbackQuery, state: FSMCon
         get_text(language_code, "welcome"),
         reply_markup=keyboard
     )
+
+
+@router.callback_query(F.data == "subscription_check")
+async def handle_subscription_check(callback: types.CallbackQuery) -> None:
+    await callback.answer("Obuna tasdiqlandi. Endi /start yuboring.", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("channel_"))

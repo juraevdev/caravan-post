@@ -28,9 +28,12 @@ def setup_handlers(dispatcher: Dispatcher) -> None:
 def setup_middlewares(dispatcher: Dispatcher, bot: Bot) -> None:
     """MIDDLEWARE"""
     from tgbot.bot.middlewares.throttling import ThrottlingMiddleware
+    from tgbot.bot.middlewares.subscription import SubscriptionRequiredMiddleware
 
     # Spamdan himoya qilish uchun klassik ichki o'rta dastur. So'rovlar orasidagi asosiy vaqtlar 0,5 soniya
     dispatcher.message.middleware(ThrottlingMiddleware(slow_mode_delay=0.5))
+    dispatcher.message.middleware(SubscriptionRequiredMiddleware())
+    dispatcher.callback_query.middleware(SubscriptionRequiredMiddleware())
 
 
 def setup_filters(dispatcher: Dispatcher) -> None:
@@ -75,4 +78,4 @@ def main():
     """CONFIG"""
     dp.startup.register(aiogram_on_startup_polling)
     dp.shutdown.register(aiogram_on_shutdown_polling)
-    asyncio.run(dp.start_polling(bot, close_bot_session=True, allowed_updates=["message"]))
+    asyncio.run(dp.start_polling(bot, close_bot_session=True))
