@@ -106,6 +106,25 @@ async def handle_subscription_check(callback: types.CallbackQuery) -> None:
 
     await callback.answer("Tasdiqlandi. Endi botdan foydalanishingiz mumkin.", show_alert=True)
 
+    username = getattr(settings, "MAIN_BOT_USERNAME", "") or ""
+    username = username.lstrip("@")
+    link = f"https://t.me/{username}"
+    caption = (
+        "Asosiy botimiz bilan davom eting:\n\n"
+        f"@{username}"
+    )
+    goto_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Asosiy botga o'tish",
+                    url=link,
+                )
+            ]
+        ]
+    )
+    if callback.message:
+        await callback.message.answer(caption, reply_markup=goto_keyboard)
 
 @router.callback_query(F.data.startswith("channel_"))
 async def handle_channel_selection(callback: types.CallbackQuery, state: FSMContext) -> None:
