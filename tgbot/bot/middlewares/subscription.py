@@ -1,5 +1,6 @@
 from aiogram import Bot
 from aiogram.dispatcher.middlewares.base import BaseMiddleware
+from aiogram.enums import ChatType
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from django.conf import settings
@@ -7,6 +8,13 @@ from django.conf import settings
 
 class SubscriptionRequiredMiddleware(BaseMiddleware):
     async def __call__(self, handler, event, data):
+        # Only enforce mandatory subscription in private chat interactions.
+        if isinstance(event, Message) and event.chat.type != ChatType.PRIVATE:
+            return await handler(event, data)
+        if isinstance(event, CallbackQuery):
+            if not event.message or event.message.chat.type != ChatType.PRIVATE:
+                return await handler(event, data)
+
         user = getattr(event, "from_user", None)
         if user is None:
             return await handler(event, data)
